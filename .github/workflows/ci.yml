@@ -17,15 +17,18 @@ jobs:
         cache: 'npm'
 
     - name: Install Dependencies (root)
-      run: npm install
+      run: npm ci
 
     - name: Install Backend Dependencies
+      run: npm ci --prefix backend
+
+    - name: Run Backend Tests
       working-directory: backend
-      run: npm install
+      run: npm test
 
     - name: Run Frontend Unit Tests
-      run: |
-        npm run test:unit -- --run
+      # this repo places the frontend at the repo root
+      run: npm run test:unit -- --run
 
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps
