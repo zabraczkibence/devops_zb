@@ -1,50 +1,53 @@
+jobs:
 name: CI/CD Pipeline
 
 on:
   push:
     branches: [ "main" ]
+  pull_request:
+    branches: [ "main"]
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        cache: 'npm'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
 
-    - name: Install Dependencies (root)
-      run: npm ci
+      - name: Install Dependencies (root)
+        run: npm ci
 
-    - name: Install Backend Dependencies
-      run: npm ci --prefix backend
+      - name: Install Backend Dependencies
+        run: npm ci --prefix backend
 
-    - name: Run Backend Tests
-      working-directory: backend
-      run: npm test
+      - name: Run Backend Tests
+        working-directory: backend
+        run: npm test
 
-    - name: Run Frontend Unit Tests
-      # this repo places the frontend at the repo root
-      run: npm run test:unit -- --run
+      - name: Run Frontend Unit Tests
+        run: npm run test:unit -- --run
 
-    - name: Install Playwright Browsers
-      run: npx playwright install --with-deps
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
 
-    - name: Run E2E Tests
-      run: npx playwright test
+      - name: Build frontend and start preview
+        run: |
+          npm run build
+          # start a static server on port 5173 for Playwright to hit
+          npx http-server ./dist -p 5173 &
+          npx wait-on http://localhost:5173
 
-name: Deploy to VPS
+      - name: Run Playwright E2E tests
+        run: CI=false npx playwright test
 
-on:
-  push:
-    branches: [ "main" ]
-
-jobs:
   deploy:
-    name: Build & Deploy on VPS
+    needs: test
+    if: github.ref == 'refs/heads/wip-oracle' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
