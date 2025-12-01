@@ -24,6 +24,10 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
 
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
       - name: Run backend integration tests
         working-directory: backend
         run: npm test
