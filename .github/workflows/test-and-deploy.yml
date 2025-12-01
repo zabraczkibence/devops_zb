@@ -1,0 +1,61 @@
+name: Test and Deploy
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    name: Run tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run backend integration tests
+        working-directory: backend
+        run: npm test
+
+      - name: Run frontend unit tests
+        run: npm run test:unit -- --run
+
+      - name: Build frontend and start preview
+        run: |
+          npm run build
+          # start a static server on port 5173 for Playwright to hit
+          npx http-server ./dist -p 5173 &
+          npx wait-on http://localhost:5173
+
+      - name: Run Playwright E2E tests
+        run: npx playwright test
+
+  deploy:
+    name: Deploy to VPS
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_SSH_PORT }}
+          script: |
+                                                  cd ~/devops25/devops_zb
+                                                  git pull
+                                                  docker compose down
+                                                  docker compose build
+                                                  docker compose up -d
