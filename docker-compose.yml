@@ -1,0 +1,38 @@
+services:
+  web-app:
+    build: .
+    image: devops_25o_web
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+  backend:
+    build: ./backend
+    image: devops_25o_backend
+    environment:
+      - PORT=3000
+      - MONGO_URI=mongodb://mongo:27017/appdb
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mongo
+    networks:
+      - app-network
+
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  mongo-data:
